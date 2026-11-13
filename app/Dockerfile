@@ -1,8 +1,10 @@
 FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /app .
 
 COPY package.json server.js ./
+
+CMD npm ci
 
 EXPOSE 8080
 
