@@ -2,7 +2,7 @@
 set -u
 
 cluster_name="dexwin-devops-assessment"
-local_port="18080"
+local_port="8080"
 failure_count=0
 warning_count=0
 
