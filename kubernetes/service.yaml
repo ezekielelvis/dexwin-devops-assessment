@@ -5,7 +5,7 @@ metadata:
   namespace: assessment
 spec:
   selector:
-    app: customer-service
+    app: customer-api
   ports:
     - name: http
       protocol: TCP

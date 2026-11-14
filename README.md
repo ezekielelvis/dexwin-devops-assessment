@@ -110,6 +110,18 @@ Improve `extensions/terraform` so that it:
 
 Be prepared to explain state, secrets, plan review, deployment, and rollback. Do not create paid or remote infrastructure.
 
+The Terraform extension records a deployment policy in `terraform_data`; it does **not** create or enforce network controls. It defaults to private access, requires an explicit CIDR allowlist when public access is enabled, and rejects unrestricted IPv4 and IPv6 `/0` ranges. Review the allowlist carefully: narrower ranges can still cover public addresses. A real deployment must enforce the policy in its network and ingress resources.
+
+Run local-only checks with:
+
+```bash
+terraform -chdir=extensions/terraform init -backend=false
+terraform -chdir=extensions/terraform validate
+terraform -chdir=extensions/terraform test
+```
+
+For a real deployment, protect state with an encrypted, access-controlled remote backend and locking; state can contain sensitive values even when marked sensitive. Keep secrets in a secrets manager, not variables files or source control. Review a saved plan and policy changes before an approved apply, verify the deployed controls, and roll back using the last known-good configuration and a newly reviewed plan. Coordinate state access and backups; do not casually restore old state over live resources.
+
 ---
 
 ### CI/CD
@@ -123,6 +135,12 @@ Improve `.github/workflows/release.yml` so that it:
 - Verifies the release and supports rollback.
 
 The workflow is an assessment artifact; do not connect it to a real production environment.
+
+The manually triggered workflow validates the application and Kubernetes assets, publishes a GHCR candidate, scans its digest, and deploys that digest only to a disposable Kind cluster. It uses the short-lived `GITHUB_TOKEN` with job-scoped package permissions, not stored registry credentials. The candidate is published before scanning and must not be treated as an approved release until the scan succeeds.
+
+To run the deployment simulation, configure the GitHub environment `assessment-production-simulation` with required reviewers and restrict it to `main`, then set its `ENABLE_ASSESSMENT_RELEASE_SIMULATION` variable to `true`. The workflow also rejects non-`main` runs and serializes releases. Environment protection rules must be configured in GitHub; the workflow cannot enforce reviewer settings itself.
+
+The simulation creates a baseline using the same candidate digest, then rolls out a new revision and checks the Service from inside the cluster. A failed rollout or service check triggers `rollout undo` to that simulated baseline; the workflow remains failed. This demonstrates rollback mechanics, not recovery to a previous production image. A real release would require a separately approved deployment design, short-lived OIDC-based cloud authentication, a verified prior revision and digest, and checks of configuration changes and the external route.
 
 ## Reset
 
